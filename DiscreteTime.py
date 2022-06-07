@@ -63,12 +63,11 @@ class Signal:
         A, B = Signal.mapSignals(self, other)
         return np.array_equal(A.dv, B.dv)
 
-
     @staticmethod
     def mapSignals(A, B): # Change to map signals
         '''Align two signals to the same independent variable'''
         iv = np.arange(np.min([A.iv[0], B.iv[0]]), np.max([A.iv[-1], B.iv[-1]]) + 1)
-        dvA = np.pad(A.dv, (0 if A.dv[0] <= iv[0] else A.dv[0] - iv[0], 0 if A.iv[-1] >= iv[-1] else iv[-1] - A.iv[-1]))
+        dvA = np.pad(A.dv, (0 if A.iv[0] <= iv[0] else A.iv[0] - iv[0], 0 if A.iv[-1] >= iv[-1] else iv[-1] - A.iv[-1]))
         dvB = np.pad(B.dv, (0 if B.iv[0] <= iv[0] else B.iv[0] - iv[0], 0 if B.iv[-1] >= iv[-1] else iv[-1] - B.iv[-1]))
         return Signal(dvA, iv[0], iv[-1]), Signal(dvB, iv[0], iv[-1])
 
@@ -77,30 +76,45 @@ class Signal:
         pass
         '''Convolves 2 signals together from input arguments'''
 
-
 class Impulse(Signal):
     '''Model the Unit Impulse Sequence'''
     def __init__(self, start, end):
-        '''Create an instacne of an impulse'''
-        self.iv = np.arrange(start, end + 1 )
+        '''Create an instance of an impulse'''
+        self.iv = np.arange(start, end + 1)
         self.dv = 1 * (self.iv == 0) 
 
 class Step(Signal):
     '''Model the Unit Step Sequence'''
     def __init__(self, start, end):
-        '''Create an instacne of an step'''
-        self.iv = np.arrange(start, end + 1 )
+        '''Create an instance of a step'''
+        self.iv = np.arange(start, end + 1)
         self.dv = 1 * (self.iv >= 0)
-
+        
 class PowerLaw(Signal):
     '''Model the Power Law Sequence'''
     def __init__(self, start, end, A=1, alpha=1):
-        '''Create an instacne of an PowerLaw'''
-        self.iv = np.arrange(start, end + 1 )
+        '''Create an instance of a PowerLaw'''
+        self.iv = np.arange(start, end + 1)
         self.dv = A * (alpha ** self.iv)
 
-   
+class Pulse(Signal):
+    '''Model the pulse sequence'''
+    def __init__(self, start, end, N = 1):
+        '''Create an instance of a Pulse'''
+        self.iv = np.arange(start, end + 1)
+        step = 1 * (self.iv >= 0)
+        sample = -1 * (self.iv >= N)
+        self.dv = step + sample
+
+class Sinusoid(Signal):
+    '''Model the sinusoid sequence'''
+    def __init__(self, start, end, A, omega, phi):
+        '''Create an instance of a Sinusoid'''
+        self.iv = np.arange(start, end + 1)
+        self.dv = A * np.cos((omega * self.iv) + phi)
+
 if __name__ == "__main__":
-    x = Signal([-1, 2, 3, -2], -2, 1)
-    y = Signal([2, 0, -3, 1], 0, 3)
-    x.plot()
+    a = Pulse(-2,8,4)
+    a.plot("a[n]", "Pulse")
+    b = Sinusoid(-5,15,1,3*np.pi/4,0)
+    b.plot("b[n]","Sinusoid")
