@@ -30,6 +30,7 @@ class Signal:
         '''Shifts a signal by some entered amount'''
         self.dv = np.pad(self.dv, (abs(nx) if nx >= 0 else 0,abs(nx) if nx <= 0 else 0))
         self.iv = np.arange((self.iv[0] if nx >= 0 else (self.iv[0] - abs(nx))),((self.iv[-1] + abs(nx) + 1) if nx >= 0 else self.iv[-1] + 1))
+        return self
 
     def decimate(self, D):
         '''Decimates a signal by some entered amount'''
@@ -80,41 +81,92 @@ class Impulse(Signal):
     '''Model the Unit Impulse Sequence'''
     def __init__(self, start, end):
         '''Create an instance of an impulse'''
+        self.model = lambda n : 1 * (n == 0)
         self.iv = np.arange(start, end + 1)
-        self.dv = 1 * (self.iv == 0) 
+        self.dv = self.model(self.iv)
 
 class Step(Signal):
     '''Model the Unit Step Sequence'''
     def __init__(self, start, end):
         '''Create an instance of a step'''
+        self.model = lambda n : 1 * (n >= 0)
         self.iv = np.arange(start, end + 1)
-        self.dv = 1 * (self.iv >= 0)
+        self.dv = self.model(self.iv)
         
 class PowerLaw(Signal):
     '''Model the Power Law Sequence'''
     def __init__(self, start, end, A=1, alpha=1):
         '''Create an instance of a PowerLaw'''
+        self.model = lambda n : 1 * (A * (alpha ** n))
         self.iv = np.arange(start, end + 1)
-        self.dv = A * (alpha ** self.iv)
+        self.dv = self.model(self.iv)
 
 class Pulse(Signal):
     '''Model the pulse sequence'''
-    def __init__(self, start, end, N = 1):
+    def __init__(self, start, end, N):
         '''Create an instance of a Pulse'''
         self.iv = np.arange(start, end + 1)
         step = 1 * (self.iv >= 0)
         sample = -1 * (self.iv >= N)
         self.dv = step + sample
 
+class Pulsealt(Signal):
+    '''Model the pulse sequence'''
+    def __init__(self, start, end, N):
+        '''Create an instance of a Pulse'''
+        self.model = lambda n : 1 * np.logical_and(n >= 0, n < N)
+        self.iv = np.arange(start, end + 1)
+        self.dv = self.model(self.iv)
+
 class Sinusoid(Signal):
     '''Model the sinusoid sequence'''
-    def __init__(self, start, end, A, omega, phi):
+    def __init__(self, start, end, A=1, omega = 2*np.pi, phi=0):
         '''Create an instance of a Sinusoid'''
+        self.model = lambda n : A * np.cos((omega * n) + phi)
         self.iv = np.arange(start, end + 1)
-        self.dv = A * np.cos((omega * self.iv) + phi)
+        self.dv = self.model(self.iv)
+
+class System:
+    '''Model a Discrete-Time System'''
+    def __init__(self, T):
+        '''Create an instance of System'''
+        self.T = T
+
+    def evaluate(self, x):
+        return Signal(self.T(x), x.iv[0], x.iv[-1])
+
+class ComplexExp(Signal):
+    '''Model the complex exponential sequence'''
+    def __init__(self, start, end, A=1, omega = 2*np.pi, phi=0):
+        '''Create an instance of COmplexExp'''
+        self.model = lambda n : A * np.exp(1J * (omega * n + phi))
+        self.iv = np.arange(start, end + 1)
+        self.dv = self.model(self.iv)
+
+    def plot(self, ylabel="x[n]", title="Complex Exponential", real=True):
+        '''Plot the complex exponential sequence'''
+        plt.stem(self.iv, np.real(self.dv) if real else np.imag(self.iv))
+        plt.xticks(self.iv)
+        plt.xlabel("n")
+        plt.ylabel(ylabel)
+        plt.title(title)
+        plt.show()
 
 if __name__ == "__main__":
-    a = Pulse(-2,8,4)
-    a.plot("a[n]", "Pulse")
-    b = Sinusoid(-5,15,1,3*np.pi/4,0)
-    b.plot("b[n]","Sinusoid")
+   # a = Pulse(-2,8,4)
+   # a.plot("a[n]", "Pulse")
+   # b = Sinusoid(-10,10,1,np.pi/9,1)
+   # b.plot("b[n]","Sinusoid")
+   # c = Pulsealt(-5, 5, 4)
+   # c.plot("c[n]", "Pulsealt")
+   # d = ComplexExp(-10,10,1,np.pi/9, 1)
+   # d.plot("d[n]", "Complex Exponential", real=False)
+   x = Signal([-1,2,1,-2], -2, 1)
+   #offset = System(lambda x : x.dv + 1)
+   #squarer = System(lambda x : x.dv ** 2)
+   #shifter = System(lambda x : x.shift(2).dv) 
+   
+   y = shifter.evaluate(x)
+
+   #y.plot("x[n]", "Offset System")
+   y.plot("x[n]", "Shifter")
