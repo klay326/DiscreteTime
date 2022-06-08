@@ -1,3 +1,4 @@
+from venv import create
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -73,9 +74,17 @@ class Signal:
         return Signal(dvA, iv[0], iv[-1]), Signal(dvB, iv[0], iv[-1])
 
     @staticmethod
-    def convolve(E, F):
-        pass
+    def convolve(A, B):
         '''Convolves 2 signals together from input arguments'''
+        A, B = Signal.mapSignals(A, B)
+        y = Signal(np.zeros(A.dv.size), A.iv[0], B.iv[-1])
+        for x, k in zip(A.dv, A.iv):
+            B_temp = Signal(B.dv, B.iv[0], B.iv[-1])
+            B_temp.scale(x)
+            B_temp.shift(k)
+            y = y + B_temp
+        return y
+
 
 class Impulse(Signal):
     '''Model the Unit Impulse Sequence'''
@@ -128,12 +137,12 @@ class Sinusoid(Signal):
 
 class System:
     '''Model a Discrete-Time System'''
-    def __init__(self, T):
+    def __init__(self, h):
         '''Create an instance of System'''
-        self.T = T
+        self.h = h
 
     def evaluate(self, x):
-        return Signal(self.T(x), x.iv[0], x.iv[-1])
+        return Signal.convolve(x, self.h)
 
 class ComplexExp(Signal):
     '''Model the complex exponential sequence'''
@@ -153,20 +162,7 @@ class ComplexExp(Signal):
         plt.show()
 
 if __name__ == "__main__":
-   # a = Pulse(-2,8,4)
-   # a.plot("a[n]", "Pulse")
-   # b = Sinusoid(-10,10,1,np.pi/9,1)
-   # b.plot("b[n]","Sinusoid")
-   # c = Pulsealt(-5, 5, 4)
-   # c.plot("c[n]", "Pulsealt")
-   # d = ComplexExp(-10,10,1,np.pi/9, 1)
-   # d.plot("d[n]", "Complex Exponential", real=False)
-   x = Signal([-1,2,1,-2], -2, 1)
-   #offset = System(lambda x : x.dv + 1)
-   #squarer = System(lambda x : x.dv ** 2)
-   #shifter = System(lambda x : x.shift(2).dv) 
-   
-   y = shifter.evaluate(x)
-
-   #y.plot("x[n]", "Offset System")
-   y.plot("x[n]", "Shifter")
+    x = Signal([1,2,-1], 0, 2)
+    h = Signal([1,1,1,1], 0, 3)
+    y = Signal.convolve(x, h)
+    y.plot("y[n]", "Convolution")
